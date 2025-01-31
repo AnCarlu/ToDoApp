@@ -1,11 +1,11 @@
 package com.myApps.ToDoApp.addtasks.ui.view
 
+import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,67 +13,102 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.myApps.ToDoApp.addtasks.ui.model.TaskModel
+import com.myApps.ToDoApp.addtasks.ui.model.UiState
 import com.myApps.ToDoApp.addtasks.ui.viewmodel.TaskViewModel
 
 /*
 Pantalla principal de la aplicacion
  */
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun Screen(modifier: Modifier, taskViewModel: TaskViewModel) {
 
     val showDialog: Boolean by taskViewModel.showDialog.observeAsState(false)
-    Box(Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = { TopAppBar() },
-            floatingActionButton = {
-                FloatDialog(
-                    Modifier.align(Alignment.BottomEnd),
-                    taskViewModel
-                )
+    val showDelete: Boolean by taskViewModel.showDelete.observeAsState(false)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle //Ciclo de vida de Screen
+    var isVisible by rememberSaveable { mutableStateOf(false) }
+    //Este estado siempre tendrá el ultimo valor actualizado
+    val uiState by produceState<UiState>(
+        initialValue = UiState.Loading,
+        key1 = lifecycle,
+        key2 = taskViewModel
+    ) {
+        lifecycle.repeatOnLifecycle(state = Lifecycle.State.STARTED) { //Mientras el estado ha empezado siempre está consumiendo datos
+            taskViewModel.uiState.collect { value = it }
+        }
+    }
+    when (uiState) {
+        is UiState.Error -> {
+
+        }
+
+        UiState.Loading -> {
+            CircularProgressIndicator()
+        }
+
+        is UiState.Succes -> {
+
+            Scaffold(
+                topBar = { TopAppBar(isVisible, taskViewModel) },
+                floatingActionButton = { FloatDialog(taskViewModel) }
+            ) { paddingValues ->
+                Surface(modifier.fillMaxSize(), color = Color.White) {
+                    AddTaskDialog(
+                        showDialog,
+                        onDismiss = { taskViewModel.onDialogClose() },
+                        onTaskAdd = { taskViewModel.onTaskCreate(it) })
+                    ListTask(
+                        (uiState as UiState.Succes).tasks,
+                        taskViewModel,
+                        contentPadding = paddingValues,
+                        isVisible,
+                        onVisibilityChange = { isVisible = !isVisible }
+                    )
+                    DeleteDialog(
+                        showDelete,
+                        onDismiss = { taskViewModel.onDeleteClose() },
+                        onDeleteTask = { taskViewModel.onDeleteSelectedTasks() },
+                        isVisible,
+                        onVisibilityChange = { isVisible = !isVisible }
+                    )
+
+                }
             }
-        ) {}
 
-//        ListTask(
-//            task = TODO(),
-//            taskViewModel = TODO()
-//        )
-        AddTaskDialog(
-            showDialog,
-            onDismiss = { taskViewModel.onDialogClose() },
-            onTaskAdd = { taskViewModel.onTaskCreate(it) })
-
+        }
     }
 }
 
@@ -82,7 +117,7 @@ Barra superior de la pantalla de la aplicacion
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopAppBar() {
+fun TopAppBar(isVisible: Boolean, taskViewModel: TaskViewModel) {
     //Metodo usado para que el texto aparezca centrado en el TopBar
     CenterAlignedTopAppBar(
 
@@ -96,12 +131,14 @@ fun TopAppBar() {
         },
         ///Icono del menu
         actions = {
-            IconButton(onClick = {})
-            {
-                Icon(
-                    imageVector = Icons.Filled.Menu,
-                    contentDescription = "menu"
-                )
+            if (isVisible) {
+                IconButton(onClick = { taskViewModel.onShowDelete() })
+                {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "delete"
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -111,122 +148,76 @@ fun TopAppBar() {
     )
 }
 
-/*
-FloatinActionButton para que el usuario vaya añadiendo las tareas
- */
-@Composable
-fun FloatDialog(modifier: Modifier, taskViewModel: TaskViewModel) {
-    FloatingActionButton(
-        onClick = { taskViewModel.onShowDialog() },
-        modifier = modifier.padding(end = 16.dp, bottom = 32.dp),
-        containerColor = Color.Blue
-    )
-    {
-        Icon(
-            imageVector = Icons.Filled.Add,
-            contentDescription = "add task",
-            tint = Color.White
-        )
-    }
-}
-
-//Dialogo para añadir las tareas
-@Composable
-fun AddTaskDialog(show: Boolean, onDismiss: () -> Unit, onTaskAdd: (String) -> Unit) {
-    //Variable que recoge la tarea escrita en el TextField
-    var myTask by remember { mutableStateOf("") }
-    if (show) {
-        Dialog(onDismissRequest = { onDismiss() }) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Añade una nueva tarea",
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    color = Color.Black,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.size(16.dp))
-                TextField(
-                    value = myTask,
-                    onValueChange = { myTask = it },
-                    maxLines = 1,
-                    singleLine = true
-                )
-                Spacer(Modifier.size(16.dp))
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.CenterHorizontally)
-                ) {
-                    //Boton de cancelar la accion
-                    Button(
-                        onClick = { onDismiss() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) {
-                        Text(text = "Cancelar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    //Boton para añadir tarea
-                    Button(
-                        onClick = {
-                            //Recojo el valor de myTask y lo pongo otra vez en blanco
-                            onTaskAdd(myTask)
-                            myTask = ""
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        enabled = myTask.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(disabledContainerColor = Color.Gray)
-                    ) {
-                        Text(text = "Añadir", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}
 
 //Recibe una lista de las tareas par mostrar
 @Composable
-fun ListTask(task: List<TaskModel>, taskViewModel: TaskViewModel) {
-    LazyColumn {
+fun ListTask(
+    task: List<TaskModel>,
+    taskViewModel: TaskViewModel,
+    contentPadding: PaddingValues,
+    isVisible: Boolean,
+    onVisibilityChange: (Boolean) -> Unit
+) {
+    LazyColumn(contentPadding = contentPadding) {
         //Recoge la clave unica
         items(task, key = { it.id }) {
-            ItemTask(it, taskViewModel)
+            ItemTask(
+                it,
+                taskViewModel,
+                isVisible,
+                onVisibilityChange = { onVisibilityChange(!isVisible) })
         }
     }
+
 }
 
 //Cada task que añade el usuario
 @Composable
-fun ItemTask(taskModel: TaskModel, taskViewModel: TaskViewModel) {
+fun ItemTask(
+    taskModel: TaskModel,
+    taskViewModel: TaskViewModel,
+    isVisible: Boolean,
+    onVisibilityChange: (Boolean) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onLongPress = { onVisibilityChange(!isVisible) })
+            },
         border = BorderStroke(2.dp, color = Color.Blue),
-        elevation = CardDefaults.cardElevation(8.dp)
+        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(Color.LightGray)
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .size(40.dp), verticalAlignment = Alignment.CenterVertically
+        ) {
             //Recibe el task que añade el usuario
             Text(
                 text = taskModel.task,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 5.dp)
+                    .padding(horizontal = 5.dp),
+                color = Color.Black, fontFamily = FontFamily.SansSerif
             )
 
-            Checkbox(
-                checked = taskModel.check,
-                onCheckedChange = { taskViewModel.onCheckSelected(taskModel) })
+            AnimatedVisibility(isVisible) {
+                Checkbox(
+                    checked = taskModel.check,
+                    onCheckedChange = {
+                        taskViewModel.onCheckSelected(taskModel)
+                        taskViewModel.onTaskSelected(taskModel)
+                    },
+                    colors = CheckboxDefaults.colors(
+                        uncheckedColor = Color.Blue,
+                    )
+                )
+            }
         }
+
 
     }
 }

@@ -5,6 +5,7 @@ plugins {
     //Dagger Hilt
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -70,7 +71,8 @@ dependencies {
     implementation (libs.androidx.lifecycle.livedata.ktx)
 
     //ROOM
-    implementation(libs.androidx.room.runtime)
-    kapt(libs.androidx.room.compiler)
-    implementation(libs.androidx.room.ktx)
+    implementation("androidx.room:room-runtime:2.5.1")
+    annotationProcessor ("androidx.room:room-compiler:2.5.1")
+    ksp("androidx.room:room-compiler:2.5.0")
+    implementation("androidx.room:room-ktx:2.5.1")
 }
