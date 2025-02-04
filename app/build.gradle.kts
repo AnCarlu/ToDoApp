@@ -38,6 +38,7 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
 
@@ -75,4 +76,6 @@ dependencies {
     annotationProcessor ("androidx.room:room-compiler:2.5.1")
     ksp("androidx.room:room-compiler:2.5.0")
     implementation("androidx.room:room-ktx:2.5.1")
+
+
 }

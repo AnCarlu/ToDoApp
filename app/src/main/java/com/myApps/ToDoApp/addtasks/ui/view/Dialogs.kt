@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +37,9 @@ FloatinActionButton para que el usuario vaya añadiendo las tareas
 fun FloatDialog(taskViewModel: TaskViewModel) {
     FloatingActionButton(
         onClick = { taskViewModel.onShowDialog() },
-        modifier = Modifier.padding(end = 16.dp, bottom = 32.dp),
+        modifier = Modifier
+            .padding(end = 16.dp, bottom = 32.dp)
+            .testTag("FloatDialog"),
         containerColor = Color.Blue
     )
     {
@@ -60,6 +63,7 @@ fun AddTaskDialog(show: Boolean, onDismiss: () -> Unit, onTaskAdd: (String) -> U
                     .fillMaxWidth()
                     .background(Color.White)
                     .padding(16.dp)
+                    .testTag("AddDialog")
             ) {
                 Text(
                     text = "Añade una nueva tarea",
@@ -72,6 +76,7 @@ fun AddTaskDialog(show: Boolean, onDismiss: () -> Unit, onTaskAdd: (String) -> U
                 TextField(
                     value = myTask,
                     onValueChange = { myTask = it },
+                    modifier = Modifier.testTag("textField"),
                     maxLines = 1,
                     singleLine = true
                 )
@@ -87,6 +92,7 @@ fun AddTaskDialog(show: Boolean, onDismiss: () -> Unit, onTaskAdd: (String) -> U
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
+                            .testTag("ButtonCancel1")
                     ) {
                         Text(text = "Cancelar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
@@ -99,7 +105,8 @@ fun AddTaskDialog(show: Boolean, onDismiss: () -> Unit, onTaskAdd: (String) -> U
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .testTag("ButtonAdd"),
                         enabled = myTask.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(disabledContainerColor = Color.Gray)
                     ) {
@@ -127,6 +134,7 @@ fun DeleteDialog(
                     .fillMaxWidth()
                     .background(Color.White)
                     .padding(16.dp)
+                    .testTag("DeleteDialog")
             ) {
                 Text(
                     text = "¿Estas seguro que quieres borrar?",
@@ -147,6 +155,7 @@ fun DeleteDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
+                            .testTag("ButtonCancel2")
                     ) {
                         Text(text = "Cancelar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
@@ -159,7 +168,8 @@ fun DeleteDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .testTag("ButtonDelete"),
                         colors = ButtonDefaults.buttonColors(disabledContainerColor = Color.Gray)
                     ) {
                         Text(text = "Borrar", fontSize = 10.sp, fontWeight = FontWeight.Bold)

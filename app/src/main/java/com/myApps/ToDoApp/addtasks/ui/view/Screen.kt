@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -185,7 +186,8 @@ fun ItemTask(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = { onVisibilityChange(!isVisible) })
-            },
+            }
+            .testTag("card"),
         border = BorderStroke(2.dp, color = Color.Blue),
         elevation = CardDefaults.cardElevation(8.dp),
         colors = CardDefaults.cardColors(Color.LightGray)
@@ -200,10 +202,12 @@ fun ItemTask(
                 text = taskModel.task,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 5.dp),
+                    .padding(horizontal = 5.dp)
+                    ,
                 color = Color.Black, fontFamily = FontFamily.SansSerif
             )
 
+            //Animación para ver el CheckBox
             AnimatedVisibility(isVisible) {
                 Checkbox(
                     checked = taskModel.check,
@@ -211,6 +215,7 @@ fun ItemTask(
                         taskViewModel.onCheckSelected(taskModel)
                         taskViewModel.onTaskSelected(taskModel)
                     },
+                    modifier = Modifier.testTag("checkBox"),
                     colors = CheckboxDefaults.colors(
                         uncheckedColor = Color.Blue,
                     )
